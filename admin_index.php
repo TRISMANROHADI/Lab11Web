@@ -1,43 +1,50 @@
-<?= $this->include('template/admin_header'); ?>
-<table class="table">
- <thead>
- <tr>
- <th>ID</th>
- <th>Judul</th>
- <th>Status</th>
- <th>AKsi</th>
- </tr>
- </thead>
- <tbody>
- <?php if($artikel): foreach($artikel as $row): ?>
- <tr>
- <td><?= $row['id']; ?></td>
- <td>
- <b><?= $row['judul']; ?></b>
- <p><small><?= substr($row['isi'], 0, 50); ?></small></p>
- </td>
- <td><?= $row['status']; ?></td>
- <td>
- <a class="btn" href="<?= base_url('/admin/artikel/edit/' . 
-$row['id']);?>">Ubah</a>
- <a class="btn btn-danger" onclick="return confirm('Yakin 
-menghapus data?');" href="<?= base_url('/admin/artikel/delete/' . 
-$row['id']);?>">Hapus</a>
- </td>
- </tr>
- <?php endforeach; else: ?>
- <tr>
- <td colspan="4">Belum ada data.</td>
- </tr>
- <?php endif; ?>
- </tbody>
- <tfoot>
- <tr>
- <th>ID</th>
- <th>Judul</th>
- <th>Status</th>
- <th>AKsi</th>
- </tr>
- </tfoot>
-</table>
-<?= $this->include('template/admin_footer'); ?>
+public function admin_index() 
+ {
+ $title = 'Daftar Artikel';
+ $model = new ArtikelModel();
+ $data = [
+ 'title' => $title,
+ 'artikel' => $model->paginate(10), #data dibatasi 10 record per 
+halaman
+ 'pager' => $model->pager,
+ ];
+ return view('artikel/admin_index', $data);
+ }
+ public function admin_index() 
+ {
+ $title = 'Daftar Artikel';
+ $q = $this->request->getVar('q') ?? '';
+ $model = new ArtikelModel();
+ $data = [
+ 'title' => $title,
+ 'q' => $q,
+ 'artikel' => $model->like('judul', $q)->paginate(10), # data 
+dibatasi 10 record per halaman
+ 'pager' => $model->pager,
+ ];
+ return view('artikel/admin_index', $data);
+ }
+ 
+ public function add() 
+ {
+ // validasi data.
+ $validation = \Config\Services::validation();
+ $validation->setRules(['judul' => 'required']);
+ $isDataValid = $validation->withRequest($this->request)->run();
+
+ if ($isDataValid)
+ {
+ $file = $this->request->getFile('gambar');
+ $file->move(ROOTPATH . 'public/gambar');
+ $artikel = new ArtikelModel();
+ $artikel->insert([
+ 'judul' => $this->request->getPost('judul'),
+ 'isi' => $this->request->getPost('isi'),
+ 'slug' => url_title($this->request->getPost('judul')),
+ 'gambar' => $file->getName(),
+ ]);
+ return redirect('admin/artikel');
+ }
+ $title = "Tambah Artikel";
+ return view('artikel/form_add', compact('title'));
+ }
